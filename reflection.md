@@ -15,10 +15,20 @@ The PawPal+ user has the ability to perform the following actions:
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
+I added four classes: Owner, Pet, Task, and Scheduler. Pet holds the animal's profile (name, age, breed, species, health history). Task represents a single care activity with a duration, priority, and time constraints. Owner can add and edit tasks, view the generated plan, and holds pet and personal info like time availability and preferences. Scheduler owns the task list, uses owner and pet data as inputs, and is responsible for generating the daily plan and explaining its reasoning.
+
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+
+Made a few changes to initial design.
+
+Owner gained a scheduler reference. The Owner methods previously took scheduler as a parameter on every call and now its stores scheduler as optional as an attribute for consistency with how Scheduler already stored owner.
+
+Removed redundant info methods such as Scheduler get owner and pet info and Owner get pet info because the objects are directly accessible as attributes.
+
+Key design change was updating the pets object. I have now allowed the owner to have multiple pets and maintained this change to be consistent among the scheduler and owner objects.
 
 ---
 
