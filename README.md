@@ -1,5 +1,7 @@
 # PawPal+ (Module 2 Project)
 
+<a href="screenshot_app.png" target="_blank"><img src='screenshot_app.png' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>.
+
 You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
 
 ## Scenario
@@ -29,6 +31,22 @@ PawPal+ includes three scheduling utilities to help owners manage their daily pl
 - Sort by time — orders all tasks chronologically, correctly handling AM/PM across both pets
 - Filter tasks — narrow the task list by pet name, completion status, or both
 - Conflict detection — automatically warns when two tasks are scheduled at the same time, grouped by time slot into a single readable message
+
+## Features
+
+- Priority-based scheduling — generates a daily plan by placing fixed-time tasks first, then filling remaining time with flexible tasks sorted by priority (highest first). Tasks that exceed the owner's available time are skipped and reported.
+
+- Sorting by time — orders all tasks chronologically using a 12-hour time parser that correctly resolves AM/PM, including midnight (12:00 AM) and noon (12:00 PM) edge cases.
+
+- Conflict detection — identifies tasks scheduled at the same time using a bucketed algorithm (O(n)) and surfaces one warning per conflicting time slot listing all affected tasks.
+
+- Task filtering — narrows the task list by pet name, completion status, or both independently. Omitting a filter returns all tasks unfiltered.
+
+- Daily recurrence — when a recurring task is marked complete, a new instance is automatically created with a due date calculated using timedelta (+1 day for daily, +7 days for weekly). Non-recurring tasks return no new instance.
+
+- Multi-pet management — an owner can manage multiple pets, each holding their own task list. The scheduler aggregates tasks across all pets into a single unified plan.
+
+- Plan explanation — after generating a schedule, the scheduler produces a human-readable summary showing each task's time slot, pet, duration, and whether it was fixed or priority-based, along with any skipped tasks.
 
 ## Testing PawPal+
 

@@ -57,10 +57,14 @@ The scheduler only checks for exact time matches rather than whether a task's du
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
 - What kinds of prompts or questions were most helpful?
 
+Claude Code helped me from designing the UML diagram to implementing and refining the algorithmic methods for the objects. The prompts that I found most useful followed an 'Action + Task' template — being specific about what to do and what to do it to. For example, "Evaluate my objects with its associated methods and attributes" produced a focused, structured critique rather than a generic response. Prompts that included context (like sharing the current code) were more effective than open-ended ones.
+
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
 - How did you evaluate or verify what the AI suggested?
+
+There was one moment where I was trying to use 'uv' (a package manager) instead of the virtual environment, as it is more resource efficient and easier to set up. However, when setting it up, Claude kept defaulting back to the virtual environment workflow. So I went through the uv documentation myself, completed the foundational setup, and then asked Claude to properly integrate it into the project — verifying each step rather than accepting its defaults.
 
 ---
 
@@ -71,10 +75,14 @@ The scheduler only checks for exact time matches rather than whether a task's du
 - What behaviors did you test?
 - Why were these tests important?
 
+Tests covered task completion status, pet task count after addition, full schedule generation across two pets, chronological sort order with correct AM/PM handling (including 12:00 AM/PM edge cases), daily recurrence creating a next-day occurrence via timedelta, conflict detection flagging duplicate scheduled times, and unscheduled recurring tasks being ignored by conflict detection. These were important because the scheduling and sorting logic relies on string-based time comparisons that fail silently at edge cases — for example, midnight was initially sorted as the first task of the day rather than the last, which also broke conflict detection.
+
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
 - What edge cases would you test next if you had more time?
+
+I am moderately confident the scheduler works correctly for the behaviors tested — conflict detection, sorting, filtering, and recurrence all pass their tests. The main known gap is duration-overlap detection: two tasks scheduled minutes apart won't trigger a warning even if they run into each other. The next edge cases I would test are overlapping task durations and flexible tasks being assigned to time slots already occupied by fixed tasks. Duration-overlap detection was not implemented because it increases time complexity from O(n) back to O(n²) interval comparisons.
 
 ---
 
@@ -84,10 +92,16 @@ The scheduler only checks for exact time matches rather than whether a task's du
 
 - What part of this project are you most satisfied with?
 
+I am most satisfied with the backend system design — specifically the decision to move tasks into Pet rather than Scheduler, and to have Owner and Scheduler share a bidirectional reference. These were deliberate design choices that kept responsibilities cleanly separated and made the scheduling logic straightforward to implement and test.
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+I would improve the scheduling logic so that flexible tasks are not assigned to time slots already occupied by fixed tasks — currently generate_plan() starts flexible tasks at 8:00 AM regardless of what fixed tasks are anchored there, which can create conflicts that the system then flags as warnings. I would also redesign the Streamlit UI to make the plan display more visually clear.
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+I had the notion that AI would not be that great for coding as the code is not great and breaks systems. However, now that I have access to Claude Code and can experiment without worrying about token limits, I view it differently, especially with CodePath's guidance. The code generator can still be incorrect, but it is up to the human or user to decide if they want it implemented.

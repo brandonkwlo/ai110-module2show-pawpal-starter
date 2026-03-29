@@ -12,6 +12,9 @@ if "scheduler" not in st.session_state:
     st.session_state.scheduler = Scheduler(owner=st.session_state.owner)
     st.session_state.owner.scheduler = st.session_state.scheduler
 
+if "plan_generated" not in st.session_state:
+    st.session_state.plan_generated = False
+
 # Convenience references — use these throughout the rest of the app
 owner = st.session_state.owner
 scheduler = st.session_state.scheduler
@@ -99,25 +102,58 @@ else:
                 must_occur_at=must_occur_at.strip(),
             )
             owner.add_task(task_pet, new_task)
+            st.session_state.plan_generated = False  # mark plan stale
             st.success(f"Added '{task_name}' to {task_pet}!")
 
-    if owner.pets:
-        all_tasks = owner.get_all_tasks()
-        if all_tasks:
-            st.write("**Current tasks:**")
-            st.table([
-                {
-                    "Pet": t.pet_name,
-                    "Task": t.name,
-                    "Category": t.category,
-                    "Duration (min)": t.duration,
-                    "Priority": t.priority,
-                    "Fixed time": t.must_occur_at or "flexible",
-                }
-                for t in all_tasks
-            ])
-        else:
-            st.info("No tasks added yet.")
+    all_tasks = owner.get_all_tasks()
+    if all_tasks:
+        st.write("**Current tasks (sorted by time):**")
+        sorted_tasks = scheduler.sort_by_time()
+        st.table([
+            {
+                "Pet": t.pet_name,
+                "Task": t.name,
+                "Category": t.category,
+                "Duration (min)": t.duration,
+                "Priority": t.priority,
+                "Fixed time": t.scheduled_time or t.must_occur_at or "flexible",
+                "Done": "Yes" if t.is_completed else "No",
+            }
+            for t in sorted_tasks
+        ])
+
+        # --- Filter panel ---
+        with st.expander("Filter tasks"):
+            col1, col2 = st.columns(2)
+            with col1:
+                pet_filter = st.selectbox(
+                    "By pet", ["All"] + [p.name for p in owner.pets], key="filter_pet"
+                )
+            with col2:
+                status_filter = st.selectbox(
+                    "By status", ["All", "Incomplete", "Completed"], key="filter_status"
+                )
+
+            pet_arg = None if pet_filter == "All" else pet_filter
+            status_arg = None if status_filter == "All" else (status_filter == "Completed")
+            filtered = scheduler.filter_tasks(pet_name=pet_arg, completed=status_arg)
+
+            if filtered:
+                st.table([
+                    {
+                        "Pet": t.pet_name,
+                        "Task": t.name,
+                        "Category": t.category,
+                        "Duration (min)": t.duration,
+                        "Priority": t.priority,
+                        "Done": "Yes" if t.is_completed else "No",
+                    }
+                    for t in filtered
+                ])
+            else:
+                st.info("No tasks match the selected filters.")
+    else:
+        st.info("No tasks added yet.")
 
 st.divider()
 
@@ -129,5 +165,40 @@ if st.button("Generate schedule"):
         st.warning("Add at least one pet and one task first.")
     else:
         scheduler.generate_plan()
-        st.success("Schedule generated!")
-        st.text(scheduler.explain_reasoning())
+        st.session_state.plan_generated = True
+
+if st.session_state.plan_generated and scheduler.plan:
+    st.success(f"Schedule generated — {sum(t.duration for t, _ in scheduler.plan)} of {owner.time_available} min planned.")
+
+    # --- Conflict warnings ---
+    conflicts = scheduler.detect_conflicts()
+    if conflicts:
+        for warning in conflicts:
+            st.warning(f"Scheduling conflict: {warning}")
+    else:
+        st.success("No scheduling conflicts detected.")
+
+    # --- Sorted plan table ---
+    st.write("**Today's Schedule (chronological):**")
+    st.table([
+        {
+            "Time": time_slot,
+            "Pet": task.pet_name,
+            "Task": task.name,
+            "Category": task.category,
+            "Duration (min)": task.duration,
+            "Priority": task.priority,
+            "Type": "Fixed" if task.must_occur_at else "Flexible",
+        }
+        for task, time_slot in sorted(
+            scheduler.plan,
+            key=lambda x: scheduler._time_to_minutes(x[1])
+        )
+    ])
+
+    # --- Skipped tasks ---
+    skipped = [t for t in owner.get_all_tasks() if not t.scheduled_time]
+    if skipped:
+        st.write("**Skipped (insufficient time):**")
+        for task in skipped:
+            st.warning(f"{task.name} ({task.pet_name}) — {task.duration} min, priority {task.priority}")
