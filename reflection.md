@@ -23,13 +23,20 @@ Yes, the design changed during implementation. After converting the UML to Pytho
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+The scheduler considers four constraints: time of day, priority level, time-of-day window, and pet name.
+
+- **Time** is the primary sort key. The `sort_by_time()` method parses each task's `time` string using `datetime.strptime` so tasks are ordered chronologically, not alphabetically. Without this, "9:00 AM" would incorrectly sort after "12:00 PM" as a raw string.
+- **Priority** ("high", "medium", "low") serves as a tiebreaker when two tasks share the same time slot, so more urgent care — like a vet appointment — is surfaced first.
+- **Time-of-day window** (the `constraint` field: "Morning", "Afternoon", "Evening") lets the owner associate tasks with a general part of the day, which feeds into `select_tasks()` filtering.
+- **Pet name** allows the planner to scope a schedule to one pet when an owner has multiple, making the daily plan readable per animal rather than as one undifferentiated list.
+
+I prioritized time first because scheduling is meaningless without it — every other constraint is secondary to knowing *when* something happens.
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+The conflict detection in `find_conflicts()` flags only tasks with an identical `time` string. It does not account for task duration, so two tasks that *overlap* without sharing an exact start time go undetected. For example, a 45-minute grooming session starting at 7:00 AM and a feeding scheduled at 7:30 AM would not trigger a warning even though they cannot both happen simultaneously.
+
+This tradeoff is reasonable for this scenario because `Task` has no `duration_minutes` field — there is no data available to compute overlap intervals, and adding duration would require every task to carry that information accurately. For a single owner managing a small number of daily pet care tasks, exact double-bookings (the same start time) are the most critical case to catch. A lightweight string-match check surfaces the most obvious scheduling mistakes without complicating the data model or the logic needed to maintain it.
 
 ---
 

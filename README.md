@@ -72,14 +72,12 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
-| Feature           | Method(s) | Notes                             |
-| ----------------- | --------- | --------------------------------- |
-| Task sorting      |           | e.g., by priority, duration       |
-| Filtering         |           | e.g., skip tasks if time runs out |
-| Conflict handling |           | e.g., overlapping time slots      |
-| Recurring tasks   |           | e.g., daily vs. weekly            |
+| Feature           | Method(s) | Notes |
+| ----------------- | --------- | ----- |
+| Task sorting      | `Planner.sort_by_time()` | Sorts tasks chronologically using `datetime.strptime` via the `_parse_time` helper. Raw string comparison is avoided because it would sort "9:00 AM" after "12:00 PM" alphabetically. Unrecognized time strings fall to the end of the list instead of raising an error. |
+| Filtering         | `Planner.select_tasks(status, pet_name)` | Filters the task list by completion status ("complete" / "incomplete"), pet name, or both combined. Both arguments are optional and case-insensitive, so callers can mix and match without needing separate methods. |
+| Conflict detection | `Planner.find_conflicts()` | Groups all incomplete tasks by their normalized start time and reports any slot with two or more tasks. Returns a list of human-readable warning strings — one per conflict — and never raises. Completed tasks are excluded because they no longer occupy a slot. |
+| Recurring tasks   | `Task.next_occurrence(new_id)` and `Planner.complete_task(task_id)` | Tasks carry a `recurrence` field ("daily" or "weekly") and a `due_date`. When `complete_task()` marks a recurring task done, it calls `next_occurrence()`, which uses `timedelta` to advance the due date by 1 day or 7 days and returns a fresh task with reset status. The new task is added to the planner automatically. |
 
 ## 📸 Demo Walkthrough
 
