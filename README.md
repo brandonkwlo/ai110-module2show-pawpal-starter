@@ -74,12 +74,12 @@ Sample test output:
 
 > Fill in once you've implemented scheduling logic.
 
-| Feature | Method(s) | Notes |
-|---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Feature           | Method(s) | Notes                             |
+| ----------------- | --------- | --------------------------------- |
+| Task sorting      |           | e.g., by priority, duration       |
+| Filtering         |           | e.g., skip tasks if time runs out |
+| Conflict handling |           | e.g., overlapping time slots      |
+| Recurring tasks   |           | e.g., daily vs. weekly            |
 
 ## 📸 Demo Walkthrough
 
@@ -91,4 +91,15 @@ Describe your app in numbered steps so a reader can follow along without watchin
 4. <!-- Describe this step -->
 5. <!-- Add more steps as needed -->
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+## Sample Output
+
+````
+Owner: Alice
+Pet: Buddy, Age: 5, Health: Good, Species: Dog
+Pet: Mittens, Age: 3, Health: Fair, Species: Cat
+Tasks:
+Walk Buddy - Take Buddy for a walk in the park (Priority: High, Time: 7:00 AM)
+Feed Buddy - Feed Buddy his breakfast (Priority: Medium, Time: 8:00 AM)
+Vet Appointment - Take Mittens to the vet for a check-up (Priority: High, Time: 2:00 PM)
+```
+````
