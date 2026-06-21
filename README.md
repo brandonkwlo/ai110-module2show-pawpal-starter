@@ -56,19 +56,46 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 
 ## 🧪 Testing PawPal+
 
+Run the full test suite from the project root:
+
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python -m pytest test/test_pawpal.py -v
 ```
 
-Sample test output:
+### What the tests cover
+
+| Test | What it verifies |
+| ---- | ---------------- |
+| `test_mark_complete_changes_status` | `Task.mark_complete()` flips status from `"incomplete"` to `"complete"` |
+| `test_add_task_to_pet_increases_count` | `Pet.add_task()` appends to the pet's task list |
+| `test_sort_by_time_returns_chronological_order` | `Planner.sort_by_time()` orders tasks earliest → latest regardless of insertion order |
+| `test_completing_daily_task_schedules_next_day` | Completing a `"daily"` recurring task auto-schedules a new task for the following day |
+| `test_find_conflicts_flags_duplicate_times` | `Planner.find_conflicts()` emits a warning when two incomplete tasks share the same start time |
+| `test_find_conflicts_ignores_completed_tasks` | Completed tasks are excluded from conflict detection |
+
+### Successful test run output
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+platform darwin -- Python 3.12.2, pytest-9.0.3, pluggy-1.6.0 -- /opt/miniconda3/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/brandonlo/My Folder/[03] Learning/CPAI110TF/ai110-module2show-pawpal-starter
+plugins: anyio-4.13.0
+collecting ... collected 6 items
+
+test/test_pawpal.py::test_mark_complete_changes_status PASSED            [ 16%]
+test/test_pawpal.py::test_add_task_to_pet_increases_count PASSED         [ 33%]
+test/test_pawpal.py::test_sort_by_time_returns_chronological_order PASSED [ 50%]
+test/test_pawpal.py::test_completing_daily_task_schedules_next_day PASSED [ 66%]
+test/test_pawpal.py::test_find_conflicts_flags_duplicate_times PASSED    [ 83%]
+test/test_pawpal.py::test_find_conflicts_ignores_completed_tasks PASSED  [100%]
+
+============================== 6 passed in 0.02s ==============================
 ```
+
+### Confidence Level: ★★★★☆ (4/5)
+
+The core scheduling behaviors — time sorting, daily recurrence, and conflict detection — are all tested and passing. The 4/5 rating reflects that the `Pet` getter/setter stubs (`get_name`, `set_age`, etc.) and `Planner.organize_tasks()` are not yet implemented, so those code paths have no coverage. Reliability is high for the features that are complete.
 
 ## 📐 Smarter Scheduling
 
