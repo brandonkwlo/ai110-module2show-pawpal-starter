@@ -4,13 +4,18 @@
 
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+My initial UML design included four classes: `Owner`, `Pet`, `Task`, and `Planner`.
+
+- **Owner** is the central user of the system. It holds a list of pets and has methods to add or modify tasks in the planner, as well as provide raw task data as input.
+- **Pet** stores a pet's profile — name, age, species, and health condition — with explicit getters and setters for each field so the owner can update pet info over time.
+- **Task** represents a single care activity. It stores identifying info (task ID, activity name, description) along with scheduling metadata like priority and constraint, and exposes a `get_info()` method to return all fields as a dictionary.
+- **Planner** acts as the scheduling engine. It holds a list of tasks and provides methods to add, remove, filter by constraint, and sort by priority so it can produce an organized daily plan.
+
+The relationships reflect that an Owner manages one Planner and owns one or more Pets, while the Planner aggregates Tasks that can also be associated with specific Pets.
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+Yes, the design changed during implementation. After converting the UML to Python class stubs, I realized the `Task` class was missing a `time` attribute. Time is essential for scheduling — without it, the `Planner` has no way to order tasks chronologically or check for conflicts in a daily plan. I added `time: str` to the `Task` dataclass and updated the UML accordingly to keep both in sync.
 
 ---
 
