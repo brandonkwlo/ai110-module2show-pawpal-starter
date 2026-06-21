@@ -1,104 +1,161 @@
 import streamlit as st
 
-from pawpal_system import Owner, Pet, Planner, Task
+from pawpal_system import Planner, Task
 
-st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
-
+st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="wide")
 st.title("🐾 PawPal+")
 
-st.markdown(
-    """
-Welcome to the PawPal+ starter app.
-
-This file is intentionally thin. It gives you a working Streamlit app so you can start quickly,
-but **it does not implement the project logic**. Your job is to design the system and build it.
-
-Use this app as your interactive demo once your backend classes/functions exist.
-"""
-)
-
-with st.expander("Scenario", expanded=True):
-    st.markdown(
-        """
-**PawPal+** is a pet care planning assistant. It helps a pet owner plan care tasks
-for their pet(s) based on constraints like time, priority, and preferences.
-
-You will design and implement the scheduling logic and connect it to this Streamlit UI.
-"""
-    )
-
-with st.expander("What you need to build", expanded=True):
-    st.markdown(
-        """
-At minimum, your system should:
-- Represent pet care tasks (what needs to happen, how long it takes, priority)
-- Represent the pet and the owner (basic info and preferences)
-- Build a plan/schedule for a day that chooses and orders tasks based on constraints
-- Explain the plan (why each task was chosen and when it happens)
-"""
-    )
-
-st.divider()
-
-st.subheader("Quick Demo Inputs (UI only)")
-owner_name = st.text_input("Owner name", value="Jordan")
-pet_name = st.text_input("Pet name", value="Mochi")
-species = st.selectbox("Species", ["dog", "cat", "other"])
-
-st.markdown("### Tasks")
-st.caption("Add a few tasks. In your final version, these should feed into your scheduler.")
-
+# ── Session state ────────────────────────────────────────────────────────────
 if "planner" not in st.session_state:
     st.session_state.planner = Planner()
 
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    task_title = st.text_input("Task title", value="Morning walk")
-with col2:
-    task_time = st.text_input("Time", value="8:00 AM")
-with col3:
-    priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
-with col4:
-    constraint = st.selectbox("Constraint", ["Morning", "Afternoon", "Evening", "Any"])
+planner: Planner = st.session_state.planner
 
-if st.button("Add task"):
-    planner: Planner = st.session_state.planner
-    task_id = str(len(planner.get_tasks()) + 1)
-    new_task = Task(
-        task_id=task_id,
-        activity_name=task_title,
-        description=task_title,
-        priority=priority,
-        constraint=constraint,
-        time=task_time,
-    )
-    planner.add_task(new_task)
-    st.success(f"Added: {task_title}")
+# ── Sidebar ──────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.header("Owner & Pet")
+    owner_name = st.text_input("Owner name", value="Jordan")
+    default_pet = st.text_input("Default pet name", value="Mochi")
+    st.divider()
+    if st.button("Clear all tasks", type="secondary"):
+        st.session_state.planner = Planner()
+        st.rerun()
 
-current_tasks = st.session_state.planner.get_tasks()
-if current_tasks:
-    st.write("Current tasks:")
-    st.table([
-        {"Task": t.activity_name, "Time": t.time, "Priority": t.priority, "Constraint": t.constraint}
-        for t in current_tasks
-    ])
-else:
-    st.info("No tasks yet. Add one above.")
+# ── Tabs ─────────────────────────────────────────────────────────────────────
+tab_add, tab_schedule, tab_filter, tab_conflicts = st.tabs(
+    ["➕ Add Task", "📅 Schedule", "🔍 Filter", "⚠️ Conflicts"]
+)
 
-st.divider()
+# ── Tab 1: Add Task ──────────────────────────────────────────────────────────
+with tab_add:
+    st.subheader("Add a New Task")
+    with st.form("add_task_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            task_title = st.text_input("Task title", value="Morning walk")
+            task_time = st.text_input("Time (e.g. 8:00 AM or 14:30)", value="8:00 AM")
+            task_pet = st.text_input("Pet name", value=default_pet)
+        with col2:
+            priority = st.selectbox("Priority", ["high", "medium", "low"])
+            constraint = st.selectbox("Constraint", ["Morning", "Afternoon", "Evening", "Any"])
+            recurrence = st.selectbox(
+                "Recurrence",
+                ["", "daily", "weekly"],
+                format_func=lambda x: x or "One-time",
+            )
+        due_date_val = st.date_input("Start date (required for recurring tasks)")
 
-st.subheader("Build Schedule")
-st.caption("This button should call your scheduling logic once you implement it.")
+        if st.form_submit_button("Add Task", type="primary"):
+            task_id = str(len(planner.get_tasks()) + 1)
+            planner.add_task(Task(
+                task_id=task_id,
+                activity_name=task_title,
+                description=task_title,
+                priority=priority,
+                constraint=constraint,
+                time=task_time,
+                pet_name=task_pet,
+                recurrence=recurrence,
+                due_date=due_date_val.isoformat() if recurrence else "",
+            ))
+            suffix = f" — recurs {recurrence}" if recurrence else ""
+            st.success(f"Added: **{task_title}** at {task_time}{suffix}")
 
-if st.button("Generate schedule"):
-    owner = Owner(name=owner_name)
-    pet = Pet(name=pet_name, age=0, health_condition="Unknown", species=species)
-    tasks = st.session_state.planner.get_tasks()
+# ── Tab 2: Schedule (sorted by time) ─────────────────────────────────────────
+with tab_schedule:
+    st.subheader(f"Daily Schedule for {owner_name}")
 
-    if not tasks:
-        st.warning("No tasks added yet. Add at least one task above.")
+    sorted_tasks = planner.sort_by_time()
+
+    if not sorted_tasks:
+        st.info("No tasks yet. Add some in the **Add Task** tab.")
     else:
-        sorted_tasks = sorted(tasks, key=lambda t: (t.time, ["high", "medium", "low"].index(t.priority)))
-        st.success(f"Daily plan for {pet.name} ({species}):")
-        for task in sorted_tasks:
-            st.markdown(f"- **{task.time}** — {task.activity_name} `[priority: {task.priority}]` _{task.constraint}_")
+        # Surface conflict warnings at the top of the schedule
+        for warning in planner.find_conflicts():
+            st.warning(warning)
+
+        st.dataframe(
+            [
+                {
+                    "Time": t.time,
+                    "Task": t.activity_name,
+                    "Pet": t.pet_name or "—",
+                    "Priority": t.priority.capitalize(),
+                    "Constraint": t.constraint,
+                    "Recurrence": t.recurrence or "one-time",
+                    "Due Date": t.due_date or "—",
+                    "Status": t.status,
+                }
+                for t in sorted_tasks
+            ],
+            use_container_width=True,
+        )
+
+        st.divider()
+        st.subheader("Complete a Task")
+        incomplete = [t for t in planner.get_tasks() if t.status == "incomplete"]
+        if incomplete:
+            label_map = {t.task_id: f"{t.task_id}: {t.activity_name} at {t.time}" for t in incomplete}
+            selected_id = st.selectbox(
+                "Select task to mark complete",
+                options=list(label_map.keys()),
+                format_func=lambda x: label_map[x],
+            )
+            if st.button("Mark Complete", type="primary"):
+                next_task = planner.complete_task(selected_id)
+                if next_task:
+                    st.success(
+                        f"Done! Next occurrence auto-scheduled for "
+                        f"**{next_task.due_date}** (task ID {next_task.task_id})."
+                    )
+                else:
+                    st.success("Task marked complete.")
+                st.rerun()
+        else:
+            st.success("All tasks are complete!")
+
+# ── Tab 3: Filter Tasks ───────────────────────────────────────────────────────
+with tab_filter:
+    st.subheader("Filter Tasks")
+    fc1, fc2 = st.columns(2)
+    with fc1:
+        filter_status = st.selectbox("Status", ["(any)", "incomplete", "complete"])
+    with fc2:
+        all_pets = sorted({t.pet_name for t in planner.get_tasks() if t.pet_name})
+        filter_pet = st.selectbox("Pet", ["(any)"] + list(all_pets))
+
+    status_arg = None if filter_status == "(any)" else filter_status
+    pet_arg = None if filter_pet == "(any)" else filter_pet
+
+    filtered = planner.select_tasks(status=status_arg, pet_name=pet_arg)
+
+    if not filtered:
+        st.info("No tasks match the selected filters.")
+    else:
+        st.caption(f"{len(filtered)} task(s) found")
+        st.table(
+            [
+                {
+                    "Time": t.time,
+                    "Task": t.activity_name,
+                    "Pet": t.pet_name or "—",
+                    "Priority": t.priority.capitalize(),
+                    "Status": t.status,
+                    "Recurrence": t.recurrence or "one-time",
+                }
+                for t in filtered
+            ]
+        )
+
+# ── Tab 4: Conflicts ──────────────────────────────────────────────────────────
+with tab_conflicts:
+    st.subheader("Conflict Report")
+    conflicts = planner.find_conflicts()
+
+    if not conflicts:
+        st.success("No scheduling conflicts detected.")
+    else:
+        st.error(f"{len(conflicts)} conflict(s) found in the active schedule.")
+        for warning in conflicts:
+            st.warning(warning)
+        st.caption("Tip: open the **Add Task** tab, then reschedule one of the conflicting tasks to a different time slot.")

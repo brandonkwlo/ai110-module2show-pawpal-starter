@@ -1,0 +1,76 @@
+classDiagram
+    %% uml_final.mmd — reflects the actual final implementation in pawpal_system.py
+    %%
+    %% What changed from uml.mmd:
+    %%   Pet      — added tasks attribute and add_task() method
+    %%   Task     — added status, petName, recurrence, dueDate fields
+    %%              added markComplete() and nextOccurrence() methods
+    %%   Planner  — selectTasks() signature corrected (status + petName, not constraint)
+    %%              added completeTask(), sortByTime(), findConflicts()
+    %%   Added    — _parseTime utility function used internally by sortByTime()
+    %%   Added    — Task self-reference: nextOccurrence() creates a new Task
+
+    class Owner {
+        +String name
+        +List~Pet~ petsOwned
+        +addTask(task: Task, planner: Planner) void
+        +modifyTask(taskId: String, updatedTask: Task, planner: Planner) void
+        +provideTaskData() Map
+    }
+
+    class Pet {
+        +String name
+        +int age
+        +String healthCondition
+        +String species
+        +List~Task~ tasks
+        +addTask(task: Task) void
+        +getName() String
+        +setName(name: String) void
+        +getAge() int
+        +setAge(age: int) void
+        +getHealthCondition() String
+        +setHealthCondition(condition: String) void
+        +getSpecies() String
+        +setSpecies(species: String) void
+    }
+
+    class Task {
+        +String taskId
+        +String activityName
+        +String description
+        +String priority
+        +String constraint
+        +String time
+        +String status
+        +String petName
+        +String recurrence
+        +String dueDate
+        +getInfo() Map
+        +markComplete() void
+        +nextOccurrence(newId: String) Task
+    }
+
+    class Planner {
+        +List~Task~ tasks
+        +addTask(task: Task) void
+        +removeTask(taskId: String) void
+        +selectTasks(status: String, petName: String) List~Task~
+        +completeTask(taskId: String) Task
+        +organizeTasks(priority: String) List~Task~
+        +sortByTime() List~Task~
+        +findConflicts() List~String~
+        +getTasks() List~Task~
+    }
+
+    class _parse_time {
+        <<utility>>
+        +parseTime(timeStr: String) datetime
+    }
+
+    Owner "1" --> "1..*" Pet : owns
+    Owner "1" --> "1" Planner : manages
+    Planner "1" o-- "0..*" Task : stores
+    Pet "1" -- "0..*" Task : associated with
+    Task ..> Task : nextOccurrence() creates
+    Planner ..> _parse_time : sortByTime() delegates to

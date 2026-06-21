@@ -108,23 +108,92 @@ The core scheduling behaviors — time sorting, daily recurrence, and conflict d
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### Streamlit UI features
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The app is organized into four tabs, each exposing a different scheduler capability:
 
-## Sample Output
+| Tab | What you can do |
+| --- | --------------- |
+| **➕ Add Task** | Fill in a task title, time, pet name, priority, constraint, and optional recurrence (daily / weekly). Recurring tasks require a start date so the scheduler knows when to advance them. |
+| **📅 Schedule** | See all tasks sorted chronologically by `Planner.sort_by_time()`. Any time-slot conflicts appear as yellow `st.warning` banners at the top. A dropdown lets you mark any incomplete task complete; if it recurs, the next occurrence is auto-scheduled and confirmed with a `st.success` message. |
+| **🔍 Filter** | Use the Status and Pet dropdowns to call `Planner.select_tasks()`. Results update instantly — handy for checking "what does Mochi still need today?" |
+| **⚠️ Conflicts** | A dedicated conflict report powered by `Planner.find_conflicts()`. Shows a green `st.success` when the schedule is clean, or a red `st.error` count and one `st.warning` per conflicting time slot. |
 
-````
-Owner: Alice
-Pet: Buddy, Age: 5, Health: Good, Species: Dog
-Pet: Mittens, Age: 3, Health: Fair, Species: Cat
-Tasks:
-Walk Buddy - Take Buddy for a walk in the park (Priority: High, Time: 7:00 AM)
-Feed Buddy - Feed Buddy his breakfast (Priority: Medium, Time: 8:00 AM)
-Vet Appointment - Take Mittens to the vet for a check-up (Priority: High, Time: 2:00 PM)
+### Example workflow
+
+1. **Enter owner and pet info** in the sidebar (owner name + default pet name).
+2. **Add Task tab** — add "Morning Walk" at `7:00 AM`, priority High, recurrence Daily, start date today.
+3. **Add Task tab** — add "Feed Buddy" at `8:00 AM`, priority Medium, one-time.
+4. **Add Task tab** — add "Grooming Session" at `8:00 AM`, priority Low, one-time. This creates a deliberate conflict.
+5. **Schedule tab** — the sorted schedule shows Walk → Feed → Grooming in time order. A yellow warning banner appears: `WARNING: Conflict at 8:00 AM — 'Feed Buddy', 'Grooming Session'`.
+6. **Mark "Morning Walk" complete** using the dropdown. A success message confirms the next daily occurrence was auto-scheduled for tomorrow.
+7. **Conflicts tab** — confirms one active conflict remains; the completed walk no longer appears here.
+8. **Filter tab** — select Status: `incomplete` to see only outstanding tasks for the day.
+
+### Key scheduler behaviors demonstrated
+
+- **Chronological sorting** — tasks added in any order are displayed earliest-to-latest. `_parse_time` handles both `8:00 AM` (12-hour) and `14:30` (24-hour) formats so the sort is never fooled by alphabetical ordering.
+- **Conflict warnings** — two incomplete tasks at the same start time trigger a warning. Case differences (`8:00 AM` vs `8:00 am`) are normalized before comparison. Completed tasks are excluded.
+- **Recurring auto-scheduling** — completing a `daily` task advances `due_date` by 1 day; `weekly` advances by 7 days. The new task is appended to the planner automatically with status reset to `incomplete`.
+- **Filtering** — `select_tasks(status, pet_name)` accepts either or both filters, combined with a case-insensitive match so `"buddy"` finds `"Buddy"`.
+
+### CLI sample output (`python main.py`)
+
 ```
-````
+Owner: Alice
+Pets: Buddy, Mittens
+
+--- All tasks — before completing any ---
+  2:00 PM    Vet Appointment           priority=High     status=incomplete [Mittens]
+  6:30 PM    Evening Walk              priority=Medium   status=incomplete [Buddy]
+  7:00 AM    Morning Walk              priority=High     status=incomplete [Buddy]
+  8:30 AM    Feed Mittens              priority=Medium   status=incomplete [Mittens]
+  8:00 AM    Feed Buddy                priority=Medium   status=incomplete [Buddy]
+  7:00 AM    Morning Walk              priority=High     status=incomplete (daily) due=2026-06-21 [Buddy]
+  7:00 PM    Flea Treatment            priority=Medium   status=incomplete (weekly) due=2026-06-21 [Mittens]
+
+>>> Completing 'Morning Walk' (daily) via planner.complete_task()...
+    Auto-scheduled: 'Morning Walk' due 2026-06-22
+
+>>> Completing 'Flea Treatment' (weekly) via planner.complete_task()...
+    Auto-scheduled: 'Flea Treatment' due 2026-06-28
+
+--- All tasks — sorted by time ---
+  7:00 AM    Morning Walk              priority=High     status=incomplete [Buddy]
+  7:00 AM    Morning Walk              priority=High     status=complete (daily) due=2026-06-21 [Buddy]
+  7:00 AM    Morning Walk              priority=High     status=incomplete (daily) due=2026-06-22 [Buddy]
+  8:00 AM    Feed Buddy                priority=Medium   status=incomplete [Buddy]
+  8:30 AM    Feed Mittens              priority=Medium   status=incomplete [Mittens]
+  2:00 PM    Vet Appointment           priority=High     status=incomplete [Mittens]
+  6:30 PM    Evening Walk              priority=Medium   status=incomplete [Buddy]
+  7:00 PM    Flea Treatment            priority=Medium   status=complete (weekly) due=2026-06-21 [Mittens]
+  7:00 PM    Flea Treatment            priority=Medium   status=incomplete (weekly) due=2026-06-28 [Mittens]
+
+--- Incomplete tasks only ---
+  2:00 PM    Vet Appointment           priority=High     status=incomplete [Mittens]
+  6:30 PM    Evening Walk              priority=Medium   status=incomplete [Buddy]
+  7:00 AM    Morning Walk              priority=High     status=incomplete [Buddy]
+  8:30 AM    Feed Mittens              priority=Medium   status=incomplete [Mittens]
+  8:00 AM    Feed Buddy                priority=Medium   status=incomplete [Buddy]
+  7:00 AM    Morning Walk              priority=High     status=incomplete (daily) due=2026-06-22 [Buddy]
+  7:00 PM    Flea Treatment            priority=Medium   status=incomplete (weekly) due=2026-06-28 [Mittens]
+
+--- Buddy's tasks only ---
+  6:30 PM    Evening Walk              priority=Medium   status=incomplete [Buddy]
+  7:00 AM    Morning Walk              priority=High     status=incomplete [Buddy]
+  8:00 AM    Feed Buddy                priority=Medium   status=incomplete [Buddy]
+  7:00 AM    Morning Walk              priority=High     status=complete (daily) due=2026-06-21 [Buddy]
+  7:00 AM    Morning Walk              priority=High     status=incomplete (daily) due=2026-06-22 [Buddy]
+
+--- Mittens — incomplete tasks ---
+  2:00 PM    Vet Appointment           priority=High     status=incomplete [Mittens]
+  8:30 AM    Feed Mittens              priority=Medium   status=incomplete [Mittens]
+  7:00 PM    Flea Treatment            priority=Medium   status=incomplete (weekly) due=2026-06-28 [Mittens]
+
+>>> Adding conflicting tasks to demonstrate find_conflicts()...
+
+--- Conflict Report (3 conflict(s) found) ---
+  WARNING: Conflict at 2:00 PM — 'Vet Appointment' (Mittens), 'Playtime' (Mittens)
+  WARNING: Conflict at 7:00 AM — 'Morning Walk' (Buddy), 'Morning Walk' (Buddy)
+  WARNING: Conflict at 8:00 AM — 'Feed Buddy' (Buddy), 'Grooming Session' (Buddy)
+```
